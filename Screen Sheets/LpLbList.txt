@@ -4,5 +4,7 @@ KanLbLpAT_2.xlsx Kanamycin L.brevis L.plantarum
 TetLbLpAT.xlsx Tetracycline L.brevis L.plantarum
 GenLpLbLM.xlsx Gentamicin L.plantarum L.brevis
 CarbLpLbLM.xlsx Carbenicillin L.plantarum L.brevis
+CarbLbLpAT_2.xlsx Carbenicillin L.brevis L.plantarum
 ErmLbLpAT.xlsx Erythromycin L.brevis L.plantarum
-RifLpLbLM.xlsx Rifampin L.plantarum L.brevis
+RifLpLbLM.xlsx Rifampicin L.plantarum L.brevis
+RifLpLbLM_3.xlsx Rifampicin L.plantarum L.brevis

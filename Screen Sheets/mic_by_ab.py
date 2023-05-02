@@ -143,6 +143,8 @@ def mic_from_file(file, antibiotic, strains):
         
     r_ax.legend(loc='lower right')
     k_ax.legend(loc='lower right')
+    r_ax.set_ylim(bottom=0)
+    k_ax.set_ylim(bottom=0)
     r_fig.savefig(file[:-5] + "_GR.png")
     k_fig.savefig(file[:-5] + "_CC.png")
 
