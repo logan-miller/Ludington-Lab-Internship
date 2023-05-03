@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed May  3 00:48:56 2023
+
+@author: bubba
+"""
+
 import numpy as np
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
@@ -63,7 +70,7 @@ def normalize(data, control):
     normed[normed < 0] = 0
     return normed
 
-def mic_from_file(file, antibiotic, strains, init_conc, save_fig, plots):
+def print_MIC50(file, antibiotic, strains, init_conc):
     
     # Establish timestamps from number of reads (listed in sheet)
     x_count, skip_count = find_read_count(file, 'D')
@@ -73,25 +80,6 @@ def mic_from_file(file, antibiotic, strains, init_conc, save_fig, plots):
     for i in range(1, 5):
         dilutions.append(dilutions[i - 1] / 2)
     dilutions.append(0)
-    
-    if antibiotic in plots:
-        r_fig = plots[antibiotic][0]
-        r_ax = plots[antibiotic][1]
-        k_fig = plots[antibiotic][2]
-        k_ax = plots[antibiotic][3]
-    else:
-        r_fig, r_ax = plt.subplots(1,1,figsize=(15,15), sharex=True, sharey=True)
-        plt.xscale("log")
-        r_ax.set_xlabel("[" + antibiotic + "] (ug/mL)")
-        r_ax.set_ylabel("Growth Rate")
-        r_ax.set(title="Growth Rate Dependence on " + antibiotic + " Concentration")
-        
-        k_fig, k_ax = plt.subplots(1,1,figsize=(15,15), sharex=True, sharey=True)
-        plt.xscale("log")
-        k_ax.set_xlabel("[" + antibiotic + "] (ug/mL)")
-        k_ax.set_ylabel("Carrying Capacity (OD600)")
-        k_ax.set(title="Carrying Capacity Dependence on " + antibiotic + " Concentration")
-        plots[antibiotic] = [r_fig, r_ax, k_fig, k_ax]
     
     # For each of the two species
     for num in [0, 1]:
@@ -139,27 +127,24 @@ def mic_from_file(file, antibiotic, strains, init_conc, save_fig, plots):
                 est_func, pcov = curve_fit(no_growth, x_vals, conc_data.values, p0=[0, 0])
                 conc_r[conc] = 0
                 conc_k[conc] = k_guess
-        
-        # Plot r vs. [antibiotic]
-        r_ax.plot(conc_r.keys(), conc_r.values(), label=strains[num])
-        k_ax.plot(conc_k.keys(), conc_k.values(), label=strains[num])
+        mic_r = find_mic(conc_r)
+        mic_k = find_mic(conc_k)
+        #print(antibiotic + "+" + strains[num] + " GR MIC-50: " + str(mic_r))
+        print(antibiotic + "+" + strains[num] + " CC MIC-50: " + str(mic_k))
+
+def find_mic(concs):
+    halved = concs[0] / 2;
+    closest = max(concs.values())
+    mic_50 = 0;
+    for conc in concs:
+        if abs(halved - concs[conc]) < closest:
+            closest = halved - concs[conc]
+            mic_50 = conc
+    return mic_50
 
 filename = input("Enter txt file with filename list: ")
-save = input("Save figures (y/n)? ") == "y"
-plots = {}
 with open(filename, 'r', encoding='utf-8-sig') as files:
     for line in files:
         # Creates list of each field in the line
         info = line.split()
-        print(info[0])
-        mic_from_file(info[0], info[1], [info[2], info[3]], info[4], save, plots)
-for plot in plots:
-    plots[plot][1].legend(loc='lower right')
-    plots[plot][3].legend(loc='lower right')
-    plots[plot][1].autoscale()
-    plots[plot][3].autoscale()
-    plots[plot][1].set_ylim(bottom=0)
-    plots[plot][3].set_ylim(bottom=0)
-    if save:
-        plots[plot][0].savefig(plot + "GR.png")
-        plots[plot][2].savefig(plot + "CC.png")
+        print_MIC50(info[0], info[1], [info[2], info[3]], info[4])
