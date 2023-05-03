@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Mar  6 01:52:56 2023
-
-@author: bubba
-"""
-
 import numpy as np
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
@@ -70,25 +63,35 @@ def normalize(data, control):
     normed[normed < 0] = 0
     return normed
 
-def mic_from_file(file, antibiotic, strains):
+def mic_from_file(file, antibiotic, strains, init_conc, save_fig, plots):
     
     # Establish timestamps from number of reads (listed in sheet)
     x_count, skip_count = find_read_count(file, 'D')
     x_vals = np.arange(1 / 12, (x_count + 1) / 12, 1 / 12)
     
-    dilutions = [10, 5, 2.5, 1.25, 0.625, 0]
+    dilutions = [float(init_conc)]
+    for i in range(1, 5):
+        dilutions.append(dilutions[i - 1] / 2)
+    dilutions.append(0)
     
-    r_fig, r_ax = plt.subplots(1,1,figsize=(15,15), sharex=True, sharey=True)
-    plt.xscale("log")
-    r_ax.set_xlabel("[" + antibiotic + "] (ug/mL)")
-    r_ax.set_ylabel("Growth Rate")
-    r_ax.set(title="Growth Rate Dependence on " + antibiotic + " Concentration")
-    
-    k_fig, k_ax = plt.subplots(1,1,figsize=(15,15), sharex=True, sharey=True)
-    plt.xscale("log")
-    k_ax.set_xlabel("[" + antibiotic + "] (ug/mL)")
-    k_ax.set_ylabel("Carrying Capacity (OD600)")
-    k_ax.set(title="Carrying Capacity Dependence on " + antibiotic + " Concentration")
+    if antibiotic in plots:
+        r_fig = plots[antibiotic][0];
+        r_ax = plots[antibiotic][1];
+        k_fig = plots[antibiotic][2];
+        k_ax = plots[antibiotic][3];
+    else:
+        r_fig, r_ax = plt.subplots(1,1,figsize=(15,15), sharex=True, sharey=True)
+        plt.xscale("log")
+        r_ax.set_xlabel("[" + antibiotic + "] (ug/mL)")
+        r_ax.set_ylabel("Growth Rate")
+        r_ax.set(title="Growth Rate Dependence on " + antibiotic + " Concentration")
+        
+        k_fig, k_ax = plt.subplots(1,1,figsize=(15,15), sharex=True, sharey=True)
+        plt.xscale("log")
+        k_ax.set_xlabel("[" + antibiotic + "] (ug/mL)")
+        k_ax.set_ylabel("Carrying Capacity (OD600)")
+        k_ax.set(title="Carrying Capacity Dependence on " + antibiotic + " Concentration")
+        plots[antibiotic] = [r_fig, r_ax, k_fig, k_ax]
     
     # For each of the two species
     for num in [0, 1]:
@@ -140,18 +143,23 @@ def mic_from_file(file, antibiotic, strains):
         # Plot r vs. [antibiotic]
         r_ax.plot(conc_r.keys(), conc_r.values(), label=strains[num])
         k_ax.plot(conc_k.keys(), conc_k.values(), label=strains[num])
-        
-    r_ax.legend(loc='lower right')
-    k_ax.legend(loc='lower right')
-    r_ax.set_ylim(bottom=0)
-    k_ax.set_ylim(bottom=0)
-    r_fig.savefig(file[:-5] + "_GR.png")
-    k_fig.savefig(file[:-5] + "_CC.png")
 
 filename = input("Enter txt file with filename list: ")
+save = input("Save figures (y/n)? ") == "y"
+plots = {}
 with open(filename, 'r', encoding='utf-8-sig') as files:
     for line in files:
         # Creates list of each field in the line
         info = line.split()
         print(info[0])
-        mic_from_file(info[0], info[1], [info[2], info[3]])
+        mic_from_file(info[0], info[1], [info[2], info[3]], info[4], save, plots)
+for plot in plots:
+    plots[plot][1].legend(loc='lower right')
+    plots[plot][3].legend(loc='lower right')
+    plots[plot][1].autoscale()
+    plots[plot][3].autoscale()
+    plots[plot][1].set_ylim(bottom=0)
+    plots[plot][3].set_ylim(bottom=0)
+    if save:
+        plots[plot][0].savefig(plot + "GR.png")
+        plots[plot][2].savefig(plot + "CC.png")

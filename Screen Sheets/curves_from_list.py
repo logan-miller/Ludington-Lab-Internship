@@ -76,13 +76,11 @@ def normalize(data, control):
     normed[normed < 0] = 0
     return normed
 
-def growth_curves(file, antibiotic, strains):
+def growth_curves(file, antibiotic, strains, init_conc):
     
     # Establish timestamps from number of reads (listed in sheet)
     x_count, skip_val = find_read_count(file, 'D')
     x_vals = np.arange(1 / 12, (x_count + 1) / 12, 1 / 12)
-    
-    init_conc = 10
     
     # Establish dilution values
     dilutions = [init_conc]
@@ -154,4 +152,4 @@ with open(filename, 'r', encoding='utf-8-sig') as files:
         # Creates list of each field in the line
         info = line.split()
         print(info[0])
-        growth_curves(info[0], info[1], [info[2], info[3]])
+        growth_curves(info[0], info[1], [info[2], info[3]], info[4])

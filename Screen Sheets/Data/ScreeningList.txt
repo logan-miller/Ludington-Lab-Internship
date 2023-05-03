@@ -1,0 +1,13 @@
+CamLpLbLM.xlsx Chloramphenicol L.plantarum L.brevis 10
+KanLbLpAT.xlsx Kanamycin L.brevis L.plantarum 10
+KanLbLpAT_2.xlsx Kanamycin L.brevis L.plantarum 10
+TetLbLpAT.xlsx Tetracycline L.brevis L.plantarum 10
+GenLpLbLM.xlsx Gentamicin L.plantarum L.brevis 10
+CarbLpLbLM.xlsx Carbenicillin L.plantarum L.brevis 10
+CarbLbLpAT_2.xlsx Carbenicillin L.brevis L.plantarum 10
+ErmLbLpAT.xlsx Erythromycin L.brevis L.plantarum 10
+RifLpLbLM.xlsx Rifampicin L.plantarum L.brevis 10
+RifLpLbLM_3.xlsx Rifampicin L.plantarum L.brevis 10
+CamAoAtAT.xlsx Chloramphenicol A.orientalis A.tropicalis 10
+CamAoAt100AT.xlsx Chloramphenicol A.orientalis A.tropicalis 100
+ErmAtAoLM.xlsx Erythromycin A.orientalis A.tropicalis 10
