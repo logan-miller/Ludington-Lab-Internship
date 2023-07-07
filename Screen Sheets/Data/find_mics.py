@@ -7,7 +7,6 @@ Created on Wed May  3 00:48:56 2023
 
 import numpy as np
 from scipy.optimize import curve_fit
-import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 sns.set_theme()
@@ -129,7 +128,7 @@ def print_MIC50(file, antibiotic, strains, init_conc):
                 conc_k[conc] = k_guess
         mic_r = find_mic(conc_r)
         mic_k = find_mic(conc_k)
-        #print(antibiotic + "+" + strains[num] + " GR MIC-50: " + str(mic_r))
+        print(antibiotic + "+" + strains[num] + " GR MIC-50: " + str(mic_r))
         print(antibiotic + "+" + strains[num] + " CC MIC-50: " + str(mic_k))
 
 def find_mic(concs):
