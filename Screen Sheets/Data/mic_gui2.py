@@ -1,18 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Jun 16 10:31:51 2023
-
-@author: bubba
-"""
-
-# -*- coding: utf-8 -*-
-'''
-Created on Fri Jun  2 11:28:01 2023
-
-@author: bubba
-'''
-
-# -*- coding: utf-8 -*-
 
 import tkinter as tk
 from tkinter import ttk
