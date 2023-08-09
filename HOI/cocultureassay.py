@@ -120,16 +120,14 @@ def growth_curves(data, x_vals):
     return curves
 
 def init_graph(name, x_vals, controls, lp, lb, lplb, null):
-    fig, ax = plt.subplots(1,1,figsize=(15,15), sharex=True, 
-                           sharey=True)
+    fig, ax = plt.subplots(1,1,figsize=(15,15), sharex=True, sharey=True)
     ax.set_xlabel("Time (hr)")
     ax.set_ylabel("OD600")
     ax.set(title="Growth of " + name[0:2] + " Cocultures")
-    #ax.plot(x_vals, controls[0], label="Control Mean", c="tab:olive",
-            #linestyle='dashed')
-    #ax.plot(x_vals, controls[1], label="Control Fit", c="tab:olive")
-    ax.plot(x_vals, lp[0], label="Lp Mean", c="tab:purple",
+    ax.plot(x_vals, controls[0], label="Control Mean", c="tab:olive",
             linestyle='dashed')
+    ax.plot(x_vals, controls[1], label="Control Fit", c="tab:olive")
+    ax.plot(x_vals, lp[0], label="Lp Mean", c="tab:purple", linestyle='dashed')
     ax.plot(x_vals, lp[1], label="Lp Fit", c="tab:purple")
     ax.plot(x_vals, lb[0], label="Lb Mean", c="tab:pink", linestyle='dashed')
     ax.plot(x_vals, lb[1], label="Lb Fit", c="tab:pink")
@@ -145,21 +143,19 @@ def null_model(triple, data, x_vals):
     indivs = re.findall("..", triple)
     pairs = itertools.combinations(indivs, 2)
     null = [0] * len(x_vals)
-    for indiv in indivs:
-        null = np.subtract(null, data[indiv].mean(axis=1))
-    for pair in pairs:
-        null = np.add(null, data["".join(pair)].mean(axis=1))
+    for indiv in indivs: null = np.subtract(null, data[indiv].mean(axis=1))
+    for pair in pairs: null = np.add(null, data["".join(pair)].mean(axis=1))
     k_guess = null.max()
     r_guess = find_r(null.values)
     x_0_guess = find_x_0(x_vals, null.values, 0.1)
     
     try:
-        est_func, pcov = curve_fit(logistic, x_vals, null.values, 
-                                   p0=[r_guess, k_guess, x_0_guess])
+        est_func = curve_fit(logistic, x_vals, null.values, 
+                                   p0=[r_guess, k_guess, x_0_guess])[0]
         est_curve = logistic(x_vals, *est_func)
     except RuntimeError:
-        est_func, pcov = curve_fit(no_growth, x_vals, null.values, 
-                                   p0=[0, 0])
+        est_func = curve_fit(no_growth, x_vals, null.values, 
+                                   p0=[0, 0])[0]
         est_curve = no_growth(x_vals, *est_func)
     return null, est_curve, est_func
 
@@ -191,8 +187,15 @@ def graph_curves(data, curves, x_vals):
             ax.set_ylim(bottom=0)
     return null_params
 
+def extract_list(data, index):
+    extract = []
+    for entry in data: extract.append(entry[index])
+    return extract
+
 def find_med(data, x_vals):
     param_dict = {}
+    unmed = {}
+    std_devs = {}
     for section in data:
         param_list = []
         for i in range(len(data[section].columns)):
@@ -205,16 +208,25 @@ def find_med(data, x_vals):
             try:
                 est_func, pcov = curve_fit(logistic, x_vals, run.values, 
                                            p0=[r_guess, k_guess, x_0_guess])
-                param_list = est_func
+                param_list.append(est_func)
             # Assume the sample showed no significant growth
             except RuntimeError:
                 est_func, pcov = curve_fit(no_growth, x_vals, run.values, 
                                            p0=[0, 0])
-                param_list = [0, k_guess, max(x_vals)]
-        param_dict[section] = (np.median(param_list[0]), 
-                               np.median(param_list[1]), 
-                               np.median(param_list[2]))
-    return param_dict
+                param_list.append([0, k_guess, max(x_vals)])
+        param_dict[section] = (np.mean(extract_list(param_list, 0)), 
+                               np.mean(extract_list(param_list, 1)), 
+                               np.mean(extract_list(param_list, 2)))
+        unmed[section] = []
+        std_devs[section] = []
+        for i in range(3): 
+            dev = np.std(extract_list(param_list, i))
+            std_devs[section].append(dev)
+            vary = []
+            for j in range(-2, 3): vary.append(param_dict[section][i] + (j * dev))
+            unmed[section].append(vary)
+            
+    return param_dict, unmed, std_devs
             
 def extract(data, index):
     extracted = {}
@@ -222,7 +234,6 @@ def extract(data, index):
     return extracted
 
 def bar_charts(title, unit, null, params, save):
-    # set width of bar
     
     base = {}
     axlp = {}
@@ -265,6 +276,7 @@ def bar_charts(title, unit, null, params, save):
     plt.show()
     if save: fig.savefig("HOI " + title + ".png")
 
+
 def main():
     filename = input("Enter coculture sheet filename: ")
     save = input("Save bar charts? y/n: ") == "y"
@@ -274,17 +286,62 @@ def main():
         normalized[section] = normalize(sections[section], sections[""])
     curves = growth_curves(normalized, xs)
     null_params = graph_curves(normalized, curves, xs)
-    meds = find_med(sections, xs)
+    meds, unmeds, devs = find_med(sections, xs)
+    
     params = {}
+    param_list = {}
     for combo in meds: 
         if len(combo) == 6 or len(combo) == 4:
             params[combo] = (meds[combo][0], meds[combo][1], meds[combo][2])
+            param_list[combo] = (unmeds[combo][0], unmeds[combo][1], unmeds[combo][2])
+    cultures = ['Am', 'As', 'Ac']
+    null_list = {}
+    for spec in cultures:
+        null_list[spec] = []
+        for combo in meds:
+            if len(combo) < 4 or (combo[0] == 'A' and combo[1] == spec[1]) or combo[0] != 'A':
+                null_list[spec].append((devs[combo][0], devs[combo][1], devs[combo][2]))
+
+    null_boxes = {}
+
+    for spec in null_list:
+        null_boxes[spec] = (np.mean(extract_list(null_list[spec], 0)), 
+                            np.mean(extract_list(null_list[spec], 1)), 
+                            np.mean(extract_list(null_list[spec], 2)))
+    
+    null_vary = {}
+    for spec in null_boxes:
+        null_vary[spec] = []
+        for i in range(3):
+            vary = []
+            for j in range(-2, 3):
+                vary.append(null_params[spec + "LpLb"][i] + (j * null_boxes[spec][i]))
+            null_vary[spec].append(vary)
+    print(null_vary)
+    
     titles = ["Growth Rate", "Carrying Capacity", "Lag Time"]
     units = ["", " (OD600)", " (hr)"]
+    ordit = ['LpLb', 'AmLp', 'AmLb', 'AmLpLb', 'Am Null', 'AsLp', 'AsLb', 'AsLpLb', 'As Null', 'AcLp', 'AcLb', 'AcLpLb', 'Ac Null']
     for i in range(3):
+        i = int(i)
         focus = extract(params, i)
         null = extract(null_params, i)
-        figure = bar_charts(titles[i], units[i], null, focus, save)
+        bar_charts(titles[i], units[i], null, focus, save)
+        metric = extract(param_list, i)
+        nb = extract(null_vary, i)
+        rep_keys = []
+        vals = []
+        group = []
+        for key in list(metric.keys()):
+            for j in metric[key]:
+                rep_keys.append(key)
+                vals.append(j)
+        for key in list(nb.keys()):
+            for j in nb[key]:
+                rep_keys.append(key + " Null")
+                vals.append(j)
+        df = pd.DataFrame.from_dict({'Coculture': rep_keys, titles[i] + units[i]: vals})
+        sns.boxplot(data=df, x=(titles[i] + units[i]), y='Coculture', order=ordit)
         
 if __name__ == "__main__": main()
     

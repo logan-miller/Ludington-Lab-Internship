@@ -341,6 +341,15 @@ def avg_mics(spec_list):
     
     return avg_mic
 
+# Scale MIC data to be proportions of the maximum OD value
+def scale(ab):
+    scaled = {}
+    for spec in ab:
+        scaled[spec] = {}
+        od_max = max(ab[spec].values()) # Find the max
+        for conc in ab[spec]: scaled[spec][conc] = ab[spec][conc] / od_max
+    return scaled
+
 # Produce and save (if necessary) MIC graphs for an antibioitic
 def graph_mic(antibiotic, spec_mics, save):
     
@@ -348,7 +357,7 @@ def graph_mic(antibiotic, spec_mics, save):
     fig, ax = plt.subplots(1,1,figsize=(15,15), sharex=True, sharey=True)
     plt.xscale('symlog')
     ax.set_xlabel('[' + antibiotic + '] (ug/mL)')
-    ax.set_ylabel('Carrying Capacity (OD600)')
+    ax.set_ylabel('Proportion to Maximum Carrying Capacity')
     ax.set(title='Carrying Capacity Dependence on ' + antibiotic + 
            ' Concentration')
     
@@ -391,10 +400,11 @@ def find_mics(data):
             goal = 0.5 * data[ab][spec][0] # Half of the untreated OD600 value
             mics[ab][spec] = find_conc(goal, data[ab][spec])
     
+    # Record data in a displayable manner
     for ab in mics:
         text += ab + ":\n"
         for spec in mics[ab]:
-            if mics[ab][spec] == mics[ab][spec]:
+            if mics[ab][spec] == mics[ab][spec]: # If not NaN
                 text += ("\t" + spec + " - " + 
                          str(np.round(mics[ab][spec], decimals=3)) + 
                          " ug/mL\n")
@@ -403,7 +413,8 @@ def find_mics(data):
     return text
 
 # Run the proper GUI commands (create GC/MIC graphs, find MIC-50 values)
-def run(filename, sheet_name, filt, gc, mic, save_gc, save_mic, fifty, txtvar, root):
+def run(filename, sheet_name, filt, gc, mic, 
+        save_gc, save_mic, fifty, txtvar, root):
     
     # Read in experimental summary data
     xls = pd.ExcelFile(filename)
@@ -427,13 +438,18 @@ def run(filename, sheet_name, filt, gc, mic, save_gc, save_mic, fifty, txtvar, r
     # Average MIC curves; keys are antibiotics, values are dicts whose keys are
     # species names and values are the average MIC curve for that combination
     avg_lines = {}
+    
+    scaled = {}
+    
     gen_lines = mic or fifty # Either one necessitates MIC lines to be created
     
     # Run all necessary functions
     for ab in antibiotics:
         for spec in antibiotics[ab]: spec.process(gen_lines, gc, save_gc)
-        if gen_lines: avg_lines[ab] = avg_mics(antibiotics[ab])
-        if mic: graph_mic(ab, avg_lines[ab], save_mic)
+        if gen_lines: 
+            avg_lines[ab] = avg_mics(antibiotics[ab])
+            scaled[ab] = scale(avg_lines[ab])
+        if mic: graph_mic(ab, scaled[ab], save_mic)
         
     # Display MIC-50 data if necessary
     txtvar.clear()
@@ -526,7 +542,6 @@ def main():
     run_btn.grid(row=4, column=3, sticky='e', padx=5, pady=5)
     
     root.mainloop() # Runs the window
-    root.destroy() # Quits the window
     return 0
 
 # Directs to main
